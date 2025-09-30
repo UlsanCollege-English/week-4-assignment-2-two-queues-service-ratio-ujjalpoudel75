@@ -1,4 +1,10 @@
+# /tests/test_gate.py
+
 import pytest
+import sys, os
+# Path fix to allow 'from src.gate import Gate' to work
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))) 
+
 from src.gate import Gate
 
 def test_ratio_and_skips():
@@ -40,17 +46,23 @@ def test_edge_pattern_wrap_with_sparse_lines():
     with pytest.raises(IndexError):
         g.serve()
 
-# --- Longer Scenario ---
+# --- Longer Scenario (CORRECTED to serve 7 people) ---
 def test_long_mixed_arrivals_and_service():
     g = Gate()
-    # Seed queues
+    # Seed queues (5 regulars + 2 fastpass = 7 total people)
     for i in range(1, 6):
         g.arrive("regular", f"r{i}")
     g.arrive("fastpass", "f1"); g.arrive("fastpass", "f2")
+    
     served = []
-    for _ in range(8):
+    # ITERATE 7 TIMES (the number of people available)
+    for _ in range(7):
         served.append(g.serve())
-    # Pattern: F,R,R,R cycling with skips handled; check relative counts
-    # Expect 2 fastpass served and 6 regulars in first 8 serves (since both lines have stock)
+        
+    assert len(served) == 7
     assert served.count("f1") + served.count("f2") == 2
-    assert sum(1 for s in served if s.startswith("r")) == 6
+    assert sum(1 for s in served if s.startswith("r")) == 5 
+    
+    # Check that the next serve (the 8th) raises an error
+    with pytest.raises(IndexError):
+        g.serve()
